@@ -3,10 +3,9 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { ArchitectureDiagram } from '@/components/simulation/ArchitectureDiagram';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Play, Terminal, ShieldCheck, RefreshCw, Lock, AlertCircle } from 'lucide-react';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import type { ApiResponse, SimulationStep, VaultStatus } from '@shared/types';
+import { Play, Terminal, ShieldCheck, RefreshCw } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { ApiResponse, SimulationStep } from '@shared/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 export default function SimulationPage() {
@@ -14,11 +13,6 @@ export default function SimulationPage() {
   const [activeSteps, setActiveSteps] = useState<SimulationStep[]>([]);
   const [isSimulating, setIsSimulating] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
-  const { data: vaultStatusResponse } = useQuery<ApiResponse<VaultStatus>>({
-    queryKey: ['vault-status'],
-    queryFn: () => fetch('/api/vault/status').then(res => res.json()),
-  });
-  const isVaultLocked = vaultStatusResponse?.data?.isLocked ?? false;
   const mutation = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/simulation/trigger', { method: 'POST' });
@@ -30,6 +24,7 @@ export default function SimulationPage() {
       setIsSimulating(true);
       setActiveSteps([]);
       setCurrentStepIndex(-1);
+      // Animation sequence
       for (let i = 0; i < steps.length; i++) {
         await new Promise(resolve => setTimeout(resolve, 1500));
         setCurrentStepIndex(i);
@@ -56,31 +51,20 @@ export default function SimulationPage() {
               Zero-Trust Request Lifecycle Visualization
             </p>
           </div>
-          <Button
-            size="lg"
-            className="font-bold uppercase tracking-widest"
+          <Button 
+            size="lg" 
+            className="font-bold uppercase tracking-widest" 
             onClick={() => mutation.mutate()}
-            disabled={isSimulating || isVaultLocked}
+            disabled={isSimulating}
           >
             {isSimulating ? (
               <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-            ) : isVaultLocked ? (
-              <Lock className="mr-2 h-4 w-4" />
             ) : (
               <Play className="mr-2 h-4 w-4" />
             )}
-            {isVaultLocked ? "Vault Sealed" : "Initiate Secure Transaction"}
+            Initiate Secure Transaction
           </Button>
         </div>
-        {isVaultLocked && (
-          <Alert variant="destructive" className="bg-destructive/10 border-destructive/30 animate-in zoom-in-95 duration-300">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle className="font-bold uppercase tracking-widest text-xs">Security Alert: Vault Sealed</AlertTitle>
-            <AlertDescription className="text-xs opacity-80">
-              The internal cryptographic HSM is currently in a "Sealed" state. All transaction simulations are blocked until the vault is manually unsealed by an administrator.
-            </AlertDescription>
-          </Alert>
-        )}
         <div className="grid gap-6 lg:grid-cols-4">
           <div className="lg:col-span-3">
             <Card className="border-border/50 bg-secondary/10 backdrop-blur-sm h-[500px] flex items-center justify-center relative overflow-hidden">
@@ -99,26 +83,17 @@ export default function SimulationPage() {
                 {activeSteps.length === 0 && !isSimulating && (
                   <p className="text-muted-foreground italic">System idle. Awaiting trigger...</p>
                 )}
-                {activeSteps.map((step, idx) => {
-                  const isAuth = step.message.toLowerCase().includes('cert') || step.message.toLowerCase().includes('identity');
-                  const isCrypto = step.message.toLowerCase().includes('decrypt') || step.message.toLowerCase().includes('key');
-                  return (
-                    <div key={step.id} className="animate-in slide-in-from-left-2 duration-300">
-                      <div className={cn(
-                        "flex items-center gap-2 font-bold",
-                        isAuth ? "text-emerald-500" : isCrypto ? "text-amber-500" : "text-primary"
-                      )}>
-                        <span className="opacity-50">[{idx + 1}]</span>
-                        <span className="uppercase">
-                          {isAuth ? 'AUTH' : isCrypto ? 'CRYPTO' : 'INFO'} :: {step.nodeName}
-                        </span>
-                      </div>
-                      <div className="text-muted-foreground ml-6 leading-relaxed">
-                        {step.message}
-                      </div>
+                {activeSteps.map((step, idx) => (
+                  <div key={step.id} className="animate-in slide-in-from-left-2 duration-300">
+                    <div className="flex items-center gap-2 text-primary font-bold">
+                      <span className="opacity-50">[{idx + 1}]</span>
+                      <span className="uppercase">{step.nodeName}</span>
                     </div>
-                  );
-                })}
+                    <div className="text-muted-foreground ml-6 leading-relaxed">
+                      {step.message}
+                    </div>
+                  </div>
+                ))}
                 {isSimulating && currentStepIndex < 3 && (
                   <div className="ml-6 text-primary animate-pulse">PROCESSING...</div>
                 )}
@@ -130,7 +105,7 @@ export default function SimulationPage() {
                   <ShieldCheck className="h-4 w-4" /> Security Posture
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  The current flow demonstrates <span className="text-foreground font-bold">Identity-based Perimeter Defense</span>. 
+                  The current flow demonstrates <span className="text-foreground">Identity-based Perimeter Defense</span>. 
                   Every node requires mutual TLS and SPIFFE SVID verification before processing payloads.
                 </p>
               </CardContent>

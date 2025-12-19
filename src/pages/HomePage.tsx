@@ -3,6 +3,9 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Shield, Activity, Lock, AlertTriangle, Key } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
+import type { ApiResponse, AuditLog } from '@shared/types';
 const mockChartData = [
   { time: '00:00', throughput: 120 },
   { time: '04:00', throughput: 300 },
@@ -13,6 +16,12 @@ const mockChartData = [
   { time: '23:59', throughput: 450 },
 ];
 export function HomePage() {
+  const { data: logsResponse, isLoading } = useQuery<ApiResponse<AuditLog[]>>({
+    queryKey: ['audit-logs'],
+    queryFn: () => fetch('/api/logs').then(res => res.json()),
+    refetchInterval: 5000,
+  });
+  const logs = logsResponse?.data ?? [];
   return (
     <AppLayout>
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -83,31 +92,10 @@ export function HomePage() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                    <XAxis 
-                      dataKey="time" 
-                      stroke="#475569" 
-                      fontSize={10} 
-                      tickLine={false} 
-                      axisLine={false} 
-                    />
-                    <YAxis 
-                      stroke="#475569" 
-                      fontSize={10} 
-                      tickLine={false} 
-                      axisLine={false} 
-                    />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'hsl(var(--secondary))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                      itemStyle={{ color: 'hsl(var(--primary))' }}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="throughput" 
-                      stroke="hsl(var(--primary))" 
-                      fillOpacity={1} 
-                      fill="url(#colorThroughput)" 
-                      strokeWidth={2}
-                    />
+                    <XAxis dataKey="time" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--secondary))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }} />
+                    <Area type="monotone" dataKey="throughput" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorThroughput)" strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -119,24 +107,26 @@ export function HomePage() {
               <CardDescription>Recent mTLS Authentications</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {[
-                  { user: 'svc-payments', status: 'AUTH_SUCCESS', time: '12s ago' },
-                  { user: 'svc-inventory', status: 'AUTH_SUCCESS', time: '45s ago' },
-                  { user: 'ext-proxy-01', status: 'AUTH_SUCCESS', time: '1m ago' },
-                  { user: 'unknown-0x42', status: 'ACCESS_DENIED', time: '3m ago', error: true },
-                  { user: 'svc-auth-log', status: 'AUTH_SUCCESS', time: '5m ago' },
-                ].map((log, i) => (
-                  <div key={i} className="flex items-center justify-between border-b border-border/30 pb-2 last:border-0">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-mono font-bold tracking-tighter">{log.user}</span>
-                      <span className={cn("text-[10px] font-bold uppercase", log.error ? "text-destructive" : "text-emerald-500")}>
-                        {log.status}
+              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                {isLoading ? (
+                  <p className="text-xs text-muted-foreground animate-pulse">Fetching logs...</p>
+                ) : logs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">No recent activity.</p>
+                ) : (
+                  logs.map((log) => (
+                    <div key={log.id} className="flex items-center justify-between border-b border-border/30 pb-2 last:border-0">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-mono font-bold tracking-tighter truncate max-w-[150px]">{log.identity}</span>
+                        <span className={cn("text-[10px] font-bold uppercase", log.result === 'SUCCESS' ? "text-emerald-500" : "text-destructive")}>
+                          {log.action}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {new Date(log.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono text-muted-foreground">{log.time}</span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

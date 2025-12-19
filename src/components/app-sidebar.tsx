@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 const menuItems = [
   { title: "Command Center", icon: LayoutDashboard, path: "/" },
   { title: "Encryption Sandbox", icon: Lock, path: "/encryption" },
-  { title: "Architecture Sim", icon: Network, path: "/simulation", disabled: true },
+  { title: "Architecture Sim", icon: Network, path: "/simulation" },
   { title: "Vault Manager", icon: Database, path: "/vault", disabled: true },
 ];
 export function AppSidebar(): JSX.Element {
@@ -55,7 +55,7 @@ export function AppSidebar(): JSX.Element {
                     <item.icon className={cn("h-4 w-4", location.pathname === item.path ? "text-primary" : "text-muted-foreground")} />
                     <span className="font-medium">{item.title}</span>
                     {item.disabled && (
-                      <span className="ml-auto text-[8px] bg-muted px-1.5 py-0.5 rounded uppercase font-bold text-muted-foreground">Coming</span>
+                      <span className="ml-auto text-[8px] bg-muted px-1.5 py-0.5 rounded uppercase font-bold text-muted-foreground">Soon</span>
                     )}
                   </Link>
                 </SidebarMenuButton>
@@ -70,7 +70,7 @@ export function AppSidebar(): JSX.Element {
             <span className="text-[10px] font-bold text-muted-foreground uppercase">System Status</span>
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           </div>
-          <span className="text-xs font-mono text-emerald-500">OPERATIONAL</span>
+          <span className="text-xs font-mono text-emerald-500 uppercase">Operational</span>
         </div>
       </SidebarFooter>
     </Sidebar>
