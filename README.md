@@ -1,6 +1,6 @@
 # Cloudflare Workers React Template
 
-[![Deploy to Cloudflare]([cloudflarebutton])]([cloudflarebutton])
+[![Deploy to Cloudflare]([![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/divu72k/sentinelvault-dmz-security-simulator))]([![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/divu72k/sentinelvault-dmz-security-simulator))
 
 A production-ready full-stack application template built on Cloudflare Workers. This template provides a seamless developer experience with a modern React frontend, Hono-powered API backend, Durable Objects for stateful storage, and shadcn/ui for beautiful, accessible components. Perfect for building scalable, edge-deployed applications.
 
@@ -107,7 +107,7 @@ Or manually:
 
 **SPA Routing**: Automatically handles client-side routing via `assets` config in `wrangler.jsonc`.
 
-[![Deploy to Cloudflare]([cloudflarebutton])]([cloudflarebutton])
+[![Deploy to Cloudflare]([![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/divu72k/sentinelvault-dmz-security-simulator))]([![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/divu72k/sentinelvault-dmz-security-simulator))
 
 ### Environment Variables
 Set secrets via Wrangler dashboard or CLI:
