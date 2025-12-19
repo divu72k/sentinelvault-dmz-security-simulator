@@ -29,3 +29,20 @@ export interface SimulationState {
   currentStepIndex: number;
   steps: SimulationStep[];
 }
+export type KeyStatus = 'Active' | 'Rotated' | 'Revoked';
+export interface VaultKey {
+  id: string;
+  alias: string;
+  version: number;
+  algorithm: string;
+  createdAt: string;
+  lastUsed: string;
+  status: KeyStatus;
+  fingerprint: string;
+}
+export interface VaultStatus {
+  isLocked: boolean;
+  lastMaintenance: string;
+  totalKeys: number;
+  activeRotations: number;
+}

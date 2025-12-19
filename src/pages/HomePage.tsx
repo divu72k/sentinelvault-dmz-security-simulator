@@ -5,7 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Shield, Activity, Lock, AlertTriangle, Key } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
-import type { ApiResponse, AuditLog } from '@shared/types';
+import type { ApiResponse, AuditLog, VaultKey } from '@shared/types';
 const mockChartData = [
   { time: '00:00', throughput: 120 },
   { time: '04:00', throughput: 300 },
@@ -21,7 +21,13 @@ export function HomePage() {
     queryFn: () => fetch('/api/logs').then(res => res.json()),
     refetchInterval: 5000,
   });
+  const { data: keysResponse } = useQuery<ApiResponse<VaultKey[]>>({
+    queryKey: ['vault-keys'],
+    queryFn: () => fetch('/api/vault/keys').then(res => res.json()),
+  });
   const logs = logsResponse?.data ?? [];
+  const keys = keysResponse?.data ?? [];
+  const totalRotations = keys.reduce((acc, k) => acc + (k.version - 1), 0);
   return (
     <AppLayout>
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -34,13 +40,14 @@ export function HomePage() {
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-border/50 bg-secondary/20 backdrop-blur-sm">
+          <Card className="border-border/50 bg-secondary/20 backdrop-blur-sm relative overflow-hidden group">
+            <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Threat Level</CardTitle>
               <Shield className="h-4 w-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-emerald-500 glow-text-emerald">LOW</div>
+              <div className="text-2xl font-bold text-emerald-500 glow-text-emerald animate-pulse">LOW</div>
               <p className="text-[10px] text-muted-foreground font-mono mt-1">NO ACTIVE BREACHES DETECTED</p>
             </CardContent>
           </Card>
@@ -60,8 +67,8 @@ export function HomePage() {
               <Key className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">128</div>
-              <p className="text-[10px] text-muted-foreground font-mono mt-1">LAST ROTATION: 2H AGO</p>
+              <div className="text-2xl font-bold">{totalRotations}</div>
+              <p className="text-[10px] text-muted-foreground font-mono mt-1">TOTAL KEY VERSION BUMPS</p>
             </CardContent>
           </Card>
           <Card className="border-border/50 bg-secondary/20 backdrop-blur-sm">
@@ -117,7 +124,10 @@ export function HomePage() {
                     <div key={log.id} className="flex items-center justify-between border-b border-border/30 pb-2 last:border-0">
                       <div className="flex flex-col">
                         <span className="text-xs font-mono font-bold tracking-tighter truncate max-w-[150px]">{log.identity}</span>
-                        <span className={cn("text-[10px] font-bold uppercase", log.result === 'SUCCESS' ? "text-emerald-500" : "text-destructive")}>
+                        <span className={cn(
+                          "text-[10px] font-bold uppercase", 
+                          log.result === 'SUCCESS' ? "text-emerald-500" : "text-destructive"
+                        )}>
                           {log.action}
                         </span>
                       </div>

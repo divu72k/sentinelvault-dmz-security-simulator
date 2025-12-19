@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import type { DemoItem, AuditLog, SimulationStep } from '@shared/types';
+import type { DemoItem, AuditLog, SimulationStep, VaultKey, VaultStatus } from '@shared/types';
 import { MOCK_ITEMS } from '@shared/mock-data';
 export class GlobalDurableObject extends DurableObject {
     async getCounterValue(): Promise<number> {
@@ -24,19 +24,82 @@ export class GlobalDurableObject extends DurableObject {
       await this.ctx.storage.put("demo_items", updatedItems);
       return updatedItems;
     }
-    async updateDemoItem(id: string, updates: Partial<Omit<DemoItem, 'id'>>): Promise<DemoItem[]> {
-      const items = await this.getDemoItems();
-      const updatedItems = items.map(item => item.id === id ? { ...item, ...updates } : item);
-      await this.ctx.storage.put("demo_items", updatedItems);
-      return updatedItems;
+    // Vault & Key Management
+    async getVaultKeys(): Promise<VaultKey[]> {
+      let keys = await this.ctx.storage.get<VaultKey[]>("vault_keys");
+      if (!keys) {
+        keys = [
+          {
+            id: crypto.randomUUID(),
+            alias: "svc-payments-primary",
+            version: 1,
+            algorithm: "AES-256-GCM",
+            createdAt: new Date().toISOString(),
+            lastUsed: new Date().toISOString(),
+            status: "Active",
+            fingerprint: "SHA256:7b:e4:92..."
+          },
+          {
+            id: crypto.randomUUID(),
+            alias: "svc-auth-identity",
+            version: 1,
+            algorithm: "RSA-4096",
+            createdAt: new Date().toISOString(),
+            lastUsed: new Date().toISOString(),
+            status: "Active",
+            fingerprint: "SHA256:1a:c2:d3..."
+          }
+        ];
+        await this.ctx.storage.put("vault_keys", keys);
+      }
+      return keys;
     }
-    async deleteDemoItem(id: string): Promise<DemoItem[]> {
-      const items = await this.getDemoItems();
-      const updatedItems = items.filter(item => item.id !== id);
-      await this.ctx.storage.put("demo_items", updatedItems);
-      return updatedItems;
+    async rotateKey(id: string): Promise<VaultKey[]> {
+      const keys = await this.getVaultKeys();
+      const updatedKeys = keys.map(k => {
+        if (k.id === id) {
+          return {
+            ...k,
+            version: k.version + 1,
+            lastUsed: new Date().toISOString(),
+            status: 'Rotated' as const
+          };
+        }
+        return k;
+      });
+      await this.ctx.storage.put("vault_keys", updatedKeys);
+      await this.logAuditEvent({
+        action: "KEY_ROTATION",
+        identity: "admin-system",
+        result: "SUCCESS",
+        details: `Key ${id} bumped to version`
+      });
+      return updatedKeys;
     }
-    // New Audit Log & Simulation Methods
+    async getVaultStatus(): Promise<VaultStatus> {
+      const status = await this.ctx.storage.get<VaultStatus>("vault_status");
+      if (status) return status;
+      const defaultStatus: VaultStatus = {
+        isLocked: false,
+        lastMaintenance: new Date().toISOString(),
+        totalKeys: 2,
+        activeRotations: 0
+      };
+      await this.ctx.storage.put("vault_status", defaultStatus);
+      return defaultStatus;
+    }
+    async toggleVaultLock(): Promise<VaultStatus> {
+      const status = await this.getVaultStatus();
+      const updated = { ...status, isLocked: !status.isLocked };
+      await this.ctx.storage.put("vault_status", updated);
+      await this.logAuditEvent({
+        action: updated.isLocked ? "VAULT_SEALED" : "VAULT_UNSEALED",
+        identity: "admin-root",
+        result: "SUCCESS",
+        details: updated.isLocked ? "Global security override triggered" : "Normal operations resumed"
+      });
+      return updated;
+    }
     async getAuditLogs(): Promise<AuditLog[]> {
       return (await this.ctx.storage.get<AuditLog[]>("audit_logs")) || [];
     }
@@ -47,18 +110,21 @@ export class GlobalDurableObject extends DurableObject {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
       };
-      const updatedLogs = [newLog, ...logs].slice(0, 50); // Keep last 50
+      const updatedLogs = [newLog, ...logs].slice(0, 50); 
       await this.ctx.storage.put("audit_logs", updatedLogs);
       return updatedLogs;
     }
     async triggerSimulation(): Promise<SimulationStep[]> {
+      const status = await this.getVaultStatus();
+      if (status.isLocked) {
+        throw new Error("Vault is sealed. All cryptographic operations suspended.");
+      }
       const steps: SimulationStep[] = [
         { id: "1", nodeName: "Client mTLS", status: "success", message: "Client certificate verified via SPIFFE SVID", timestamp: new Date().toISOString() },
         { id: "2", nodeName: "DMZ Gateway", status: "success", message: "WAF inspection passed. Request routed to internal network.", timestamp: new Date().toISOString() },
         { id: "3", nodeName: "Internal Service", status: "success", message: "Decrypted payload using session key. Requesting Vault access.", timestamp: new Date().toISOString() },
         { id: "4", nodeName: "Sentinel Vault", status: "success", message: "HSM Key retrieved for identity: svc-payments", timestamp: new Date().toISOString() },
       ];
-      // Log the simulation as a single high-level event
       await this.logAuditEvent({
         action: "SECURE_TRANSACTION_SIM",
         identity: "ext-client-0xAF",

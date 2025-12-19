@@ -17,7 +17,7 @@ const menuItems = [
   { title: "Command Center", icon: LayoutDashboard, path: "/" },
   { title: "Encryption Sandbox", icon: Lock, path: "/encryption" },
   { title: "Architecture Sim", icon: Network, path: "/simulation" },
-  { title: "Vault Manager", icon: Database, path: "/vault", disabled: true },
+  { title: "Vault Manager", icon: Database, path: "/vault" },
 ];
 export function AppSidebar(): JSX.Element {
   const location = useLocation();
@@ -45,18 +45,11 @@ export function AppSidebar(): JSX.Element {
                 <SidebarMenuButton
                   asChild
                   isActive={location.pathname === item.path}
-                  disabled={item.disabled}
-                  className={cn(
-                    "transition-all duration-200",
-                    item.disabled && "opacity-50 cursor-not-allowed pointer-events-none"
-                  )}
+                  className="transition-all duration-200"
                 >
                   <Link to={item.path} className="flex items-center gap-3">
                     <item.icon className={cn("h-4 w-4", location.pathname === item.path ? "text-primary" : "text-muted-foreground")} />
                     <span className="font-medium">{item.title}</span>
-                    {item.disabled && (
-                      <span className="ml-auto text-[8px] bg-muted px-1.5 py-0.5 rounded uppercase font-bold text-muted-foreground">Soon</span>
-                    )}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

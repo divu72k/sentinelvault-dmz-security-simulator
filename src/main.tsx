@@ -14,6 +14,7 @@ import '@/index.css'
 import { HomePage } from '@/pages/HomePage'
 import EncryptionPage from '@/pages/EncryptionPage'
 import SimulationPage from '@/pages/SimulationPage'
+import VaultPage from '@/pages/VaultPage'
 const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
@@ -29,6 +30,11 @@ const router = createBrowserRouter([
   {
     path: "/simulation",
     element: <SimulationPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/vault",
+    element: <VaultPage />,
     errorElement: <RouteErrorBoundary />,
   },
 ]);
